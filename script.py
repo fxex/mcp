@@ -30,6 +30,7 @@ SQL_CONTEXT = {
             "  - Búsqueda Inexacta (Por defecto): Si el usuario busca nombres o frases sin comillas dobles (ej. Sandra Casas), DEBES separar las palabras y conectarlas con AND. Ejemplo: WHERE nombre ILIKE '%sandra%' AND nombre ILIKE '%casas%'. Esto es obligatorio para atrapar variantes como 'Sandra Isabel Casas'.",
             "  - Búsqueda Exacta: SOLO si el usuario encierra el término en comillas dobles (ej. \"Sandra Casas\"), asume contigüidad y no separes las palabras. Ejemplo: WHERE nombre ILIKE '%sandra casas%'.",
             "No usar unaccent(), porque no existe en esta base.",
+            "Manejo de acentos (CRÍTICO): Para cada palabra en búsquedas textuales de nombres o términos, generar condiciones ILIKE que cubran tanto la forma acentuada como no acentuada. Ejemplo: para buscar 'José Pérez', generar: WHERE (nombre ILIKE '%jose%' OR nombre ILIKE '%josé%') AND (nombre ILIKE '%perez%' OR nombre ILIKE '%pérez%'). Aplica a todas las vocales con tilde (á, é, í, ó, ú) y a la ñ.",
             "Usar DISTINCT cuando haya riesgo de duplicados.",
             "No asumir que nombres iguales representan la misma entidad.",
         ]
@@ -49,7 +50,7 @@ SQL_CONTEXT = {
                 "description": (
                     "Personas autoras de publicaciones ICT. "
                     "No asumir unicidad del nombre porque puede haber"
-                    "variaciones ortográficas o duplicados.",
+                    "variaciones ortográficas o duplicados. "
                     "En esta tabla, es posible que una misma persona aparezca bajo múltiples variaciones de nombre debido a inconsistencias en la base de datos. Por ejemplo en la base de datos puede ocurrir que exista sandra casas y sandra isabel casas con diferentes publicaciones."
                 ),
                 "columns": {
@@ -396,10 +397,10 @@ def _detect_type_filter(q: str) -> str | None:
     if _contains_any(q, ["dossier", "dossiers"]):
         return "DOSSIER"
 
-    if _contains_any(q, ["tipo articulo", "tipo artículos", "tipo paper"]):
+    if _contains_any(q, ["tipo articulo", "tipo artículo", "tipo artículos", "tipo paper"]):
         return "ARTICULO"
 
-    if _contains_any(q, ["solo articulos", "solamente articulos", "solo articulos", "solo articulos"]):
+    if _contains_any(q, ["solo articulos", "solo artículos", "solamente articulos", "solamente artículos"]):
         return "ARTICULO"
 
     return None
@@ -593,6 +594,7 @@ def preparar_consulta(pregunta: str) -> ConsultaPreparada:
         "La base no está normalizada.",
         "Puede haber autores, palabras clave o publicaciones duplicadas.",
         "En los datos de la tabla autor, es posible que una misma persona aparezca bajo múltiples variaciones de nombre debido a inconsistencias en la base de datos. Por ejemplo en la base de datos puede ocurrir que exista sandra casas y sandra isabel casas con diferentes publicaciones",
+        "Los nombres de autor pueden tener diferencias de acentos (ej: 'José' y 'Jose'). Asegurar que la búsqueda ILIKE cubra variantes acentuadas y no acentuadas de cada palabra.",
         "Usar DISTINCT si hay joins muchos-a-muchos o riesgo de duplicados.",
         "No asumir que nombres iguales representan una única entidad.",
         "No usar columnas ni tablas fuera del contrato devuelto por preparar_consulta."
@@ -606,6 +608,7 @@ def preparar_consulta(pregunta: str) -> ConsultaPreparada:
         "Agregar LIMIT si el usuario no pidió explícitamente todos los resultados.",
         "Usar ILIKE para búsquedas textuales.",
         "No usar unaccent().",
+        "Cuando la pregunta pida un máximo, mínimo o ranking (ej: 'autor con más publicaciones'), y existan empates en los valores agregados, mostrar TODOS los resultados empatados. No limitar a uno solo.",
         "Si hay joins con autor o palabra_clave, usar DISTINCT sobre ict.id_ict cuando se listen publicaciones.",
         "Después de generar SQL, llamar a consultar_base_segura con este preparation_token."
     ]
