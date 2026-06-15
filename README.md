@@ -126,11 +126,7 @@ flowchart TD
         AR[agent_rules]
         DN[database_notes]
         DS[database_schema]
-        TS[table_synonyms]
-        CS[column_synonyms]
-        DV[data_values]
-        NR[normalization_rules]
-        AM[ambiguity_rules]
+        ER[extra_rules]
     end
 
     subgraph agent_rules
@@ -153,10 +149,19 @@ flowchart TD
         R[relaciones many-to-many]
     end
 
+    subgraph extra_rules
+      TS[table_synonyms]
+      CS[column_synonyms]
+      DV[data_values]
+      NR[normalization_rules]
+      AM[ambiguity_rules]
+    end
+
     AR --> MF
     AR --> SR
-    DS --> T1 & T2 & T3 & T4 & T5
-    DS --> R
+    DS --> T1 & T2 & T3 & T4 & T5 & R
+    DN --> N1 & N2 & N3
+    ER --> TS & CS & DV & NR & AM
 ```
 
 ### Seguridad — SafeSQLDriver
